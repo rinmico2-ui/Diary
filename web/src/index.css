@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-body antialiased;
+    /* A barely-there warm wash so the page never feels flat white. */
+    background-image:
+      radial-gradient(1200px 600px at 12% -8%, rgba(232, 173, 160, 0.16), transparent 60%),
+      radial-gradient(900px 500px at 105% 5%, rgba(201, 169, 127, 0.14), transparent 55%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-sans font-normal text-ink;
+    letter-spacing: -0.015em;
+  }
+
+  /* Focus is visible but never ugly. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-rose-400/70 ring-offset-2 ring-offset-canvas;
+  }
+
+  ::selection {
+    @apply bg-rose-200/70 text-ink;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-line;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-rose-200;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-card border border-line bg-surface shadow-card;
+  }
+
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-pill px-5 py-2.5
+           text-sm font-medium transition-all duration-200 active:scale-[0.97]
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-rose-500 text-white shadow-card hover:bg-rose-600 hover:shadow-lift;
+  }
+
+  .btn-secondary {
+    @apply btn border border-line bg-surface text-ink hover:border-rose-200 hover:bg-rose-50;
+  }
+
+  .btn-ghost {
+    @apply btn text-ink-soft hover:bg-rose-50 hover:text-ink;
+  }
+
+  .field {
+    @apply w-full rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink
+           placeholder:text-ink-faint transition-colors
+           focus:border-rose-300 focus:outline-none focus:ring-4 focus:ring-rose-100/70;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface
+           px-3 py-1 text-xs text-ink-soft transition-colors;
+  }
+
+  .chip-active {
+    @apply border-rose-300 bg-rose-50 text-rose-700;
+  }
+
+  /* The scrollable page area leaves room for the mobile bottom navigation. */
+  .page {
+    @apply mx-auto w-full max-w-6xl px-4 pb-28 pt-4 sm:px-6 md:pb-16 lg:px-10;
+  }
+
+  .heading-xl {
+    @apply font-sans text-[1.75rem] leading-tight sm:text-[2rem];
+  }
+
+  .muted {
+    @apply text-sm text-ink-faint;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: var(--safe-bottom);
+  }
+  .pb-safe {
+    padding-bottom: calc(var(--safe-bottom) + 0.5rem);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  /* Keeps the chat composer above the iOS keyboard. */
+  .kb-safe {
+    padding-bottom: env(keyboard-inset-height, var(--safe-bottom));
+  }
+}
+
+/* Respect people who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
