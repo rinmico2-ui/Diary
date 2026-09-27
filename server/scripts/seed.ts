@@ -7,6 +7,8 @@
  * Demo credentials are printed once so they can be changed right away.
  */
 import { db } from '../src/db/index.js';
+
+db.migrate();
 import { config } from '../src/config.js';
 import { newId } from '../src/lib/ids.js';
 import { hashPassword } from '../src/lib/password.js';
