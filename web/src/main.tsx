@@ -11,3 +11,13 @@ createRoot(container).render(
     <App />
   </StrictMode>,
 );
+
+// Only in the built app: registering a worker against the dev server just
+// causes confusing stale-module behaviour while HMR is running.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Offline support is a bonus; a failed registration must never break the app.
+    });
+  });
+}

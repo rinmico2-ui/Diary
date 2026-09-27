@@ -56,6 +56,9 @@ export const config = {
   sessionSecret: sessionSecret || crypto.randomBytes(48).toString('base64url'),
   databasePath,
   storageDir,
+  /** The built client. In production this process also serves it, so the app
+   *  runs on a single origin — which is what the httpOnly session cookie wants. */
+  clientDist: path.resolve(rootDir, '..', 'web', 'dist'),
   storagePaths: {
     photos: path.join(storageDir, 'photos'),
     thumbnails: path.join(storageDir, 'thumbnails'),

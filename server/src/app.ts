@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'node:path';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
@@ -93,6 +94,41 @@ export function createApp() {
   app.use('/api/invites', invitesRouter);
   app.use('/api/uploads', uploadRouter);
   app.use('/api', appRouter);
+
+  // In production this same process serves the built client, so the app runs on
+  // one origin. That is also what the httpOnly session cookie wants — no CORS
+  // and no cross-site cookie edge cases in the live app.
+  if (config.isProduction) {
+    app.use(
+      express.static(config.clientDist, {
+        index: false,
+        maxAge: '1h',
+        setHeaders(res, filePath) {
+          // The shell must be revalidated or clients get pinned to an old
+          // bundle; /assets/* is content-hashed and safe to cache.
+          if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+        },
+      }),
+    );
+
+    // Deep links like /diary/<id> are client routes, so hand them the shell.
+    // API, media and bundle assets fall through to the real 404 handler —
+    // returning HTML for a missing .js would show up as a module parse error.
+    app.get('*', (req, res, next) => {
+      if (
+        req.path.startsWith('/api') ||
+        req.path.startsWith('/media') ||
+        req.path.startsWith('/socket.io') ||
+        req.path.startsWith('/assets/')
+      ) {
+        return next();
+      }
+      res.setHeader('Cache-Control', 'no-cache');
+      res.sendFile(path.join(config.clientDist, 'index.html'), (error) => {
+        if (error) next();
+      });
+    });
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);
