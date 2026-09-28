@@ -105,6 +105,9 @@ Concretely:
 - **Passwords** use scrypt (N=32768, r=8, p=1, 32 MB) with a per-user salt.
   A failed login still runs a full hash comparison so a missing account and a
   wrong password take the same time.
+- **Password reset** emails a single-use link that expires in 30 minutes. Only
+  an HMAC of the token is stored, spending it signs out every other device, and
+  `/forgot-password` answers identically whether or not the address exists.
 - **Registration is closed.** You need `INVITE_CODE`, and the space refuses a
   third member with `409`. There is no way to add anyone else.
 - **Every query is space-scoped.** Visibility lives in the SQL `WHERE` clause,
@@ -185,10 +188,13 @@ edits, deletes, reactions, read receipts, typing, presence, and memory changes.
 
 1. Set `NODE_ENV=production` and a real `SESSION_SECRET` (32+ chars).
 2. Set your own `INVITE_CODE` and `SPACE_NAME`; set `COOKIE_SECURE=1` behind HTTPS.
-3. `npm run build`, then `npm run start`.
-4. Put a TLS-terminating reverse proxy in front and forward both HTTP and
+3. Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM` so
+   "Forgot password" can send mail. Without them the endpoint answers `503`
+   instead of pretending an email is on its way.
+4. `npm run build`, then `npm run start`.
+5. Put a TLS-terminating reverse proxy in front and forward both HTTP and
    WebSocket upgrades.
-5. Back up `server/data/` — that directory is the entire application state.
+6. Back up `server/data/` — that directory is the entire application state.
 
 ---
 

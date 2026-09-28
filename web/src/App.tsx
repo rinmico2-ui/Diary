@@ -64,7 +64,12 @@ function Root() {
 
   if (status === 'loading') return <Loader label="Opening your space…" />;
 
-  if (status === 'anonymous' || status === 'forbidden') {
+  // The reset and forgot screens belong to the signed-out flow, but a reset
+  // link can also be opened while a session is still alive — show the form
+  // instead of a 404.
+  const onAuthScreen = location.pathname === '/reset-password' || location.pathname === '/forgot-password';
+
+  if (onAuthScreen || status === 'anonymous' || status === 'forbidden') {
     return <AuthGate onSignedIn={refresh} />;
   }
 

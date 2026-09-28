@@ -4,6 +4,7 @@ import { createApp } from './app.js';
 import { createRealtimeServer } from './realtime/socket.js';
 import { db } from './db/index.js';
 import { purgeExpiredSessions } from './lib/session.js';
+import { purgeExpiredPasswordResetTokens } from './lib/passwordReset.js';
 
 db.migrate();
 
@@ -11,11 +12,12 @@ const app = createApp();
 const server = http.createServer(app);
 createRealtimeServer(server);
 
-// Expired sessions are swept hourly so the table does not grow forever.
+// Expired sessions and reset tokens are swept hourly so neither table grows forever.
 const sweep = setInterval(
   () => {
     try {
       purgeExpiredSessions();
+      purgeExpiredPasswordResetTokens();
     } catch (error) {
       console.error('[session sweep]', error);
     }

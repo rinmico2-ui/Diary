@@ -76,6 +76,22 @@ export const config = {
   inviteCode: process.env.INVITE_CODE ?? (isProduction ? '' : 'our-little-space'),
   spaceName: process.env.SPACE_NAME ?? 'Our Little Space ❤️',
   sessionTtlMs: 1000 * 60 * 60 * 24 * 30,
+  /** Password reset links are deliberately short lived — long enough to read
+   *  the email, short enough that a leaked link is rarely still usable. */
+  resetTokenTtlMs: 1000 * 60 * 30,
+  /**
+   * Outbound SMTP for password reset mail. `host` being empty means email is
+   * not configured, and the forgot-password endpoint says so plainly instead
+   * of pretending a message was sent.
+   */
+  smtp: {
+    host: process.env.SMTP_HOST ?? '',
+    port: int(process.env.SMTP_PORT, 587),
+    secure: bool(process.env.SMTP_SECURE, false),
+    user: process.env.SMTP_USER ?? '',
+    pass: process.env.SMTP_PASS ?? '',
+    from: process.env.SMTP_FROM ?? 'Our Little Space <no-reply@localhost>',
+  },
   rateLimitWindowMs: int(process.env.RATE_LIMIT_WINDOW_MS, 60_000),
   authRateLimitMax: int(process.env.AUTH_RATE_LIMIT_MAX, 10),
   apiRateLimitMax: int(process.env.API_RATE_LIMIT_MAX, 600),

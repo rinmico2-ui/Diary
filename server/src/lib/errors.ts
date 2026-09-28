@@ -20,4 +20,5 @@ export const notFound = (message = 'We could not find that.') => new HttpError(4
 export const conflict = (message: string) => new HttpError(409, message, 'conflict');
 export const tooLarge = (message: string) => new HttpError(413, message, 'payload_too_large');
 export const rateLimited = (message = 'Slow down a moment, please.') => new HttpError(429, message, 'rate_limited');
+export const serviceUnavailable = (message: string) => new HttpError(503, message, 'service_unavailable');
 export const tooManySpaces = (message: string) => new HttpError(409, message, 'space_is_full');

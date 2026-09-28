@@ -46,6 +46,15 @@ export interface SessionRow {
   last_used_at: string;
 }
 
+export interface PasswordResetTokenRow {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  expires_at: string;
+  used_at: string | null;
+  created_at: string;
+}
+
 export interface AttachmentRow {
   id: string;
   space_id: string;

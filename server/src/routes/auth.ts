@@ -4,8 +4,15 @@ import { db } from '../db/index.js';
 import { config } from '../config.js';
 import { newId } from '../lib/ids.js';
 import { nowIso } from '../lib/time.js';
-import { badRequest, conflict, forbidden, tooManySpaces, unauthorized } from '../lib/errors.js';
+import { badRequest, conflict, forbidden, serviceUnavailable, tooManySpaces, unauthorized } from '../lib/errors.js';
 import { hashPassword, passwordProblems, verifyPassword } from '../lib/password.js';
+import {
+  consumePasswordResetToken,
+  isResetTokenUsable,
+  issuePasswordResetToken,
+  peekPasswordResetToken,
+} from '../lib/passwordReset.js';
+import { isMailConfigured, sendPasswordResetEmail } from '../lib/mailer.js';
 import { checkInviteCode, consumeInviteCode } from '../services/invites.js';
 import {
   SESSION_COOKIE,
@@ -246,6 +253,121 @@ authRouter.post(
     destroyAllSessionsForUser(principal.userId);
     const { token } = createSession({ userId: principal.userId, userAgent: req.get('user-agent'), ipAddress: clientIp(req) });
     res.cookie(SESSION_COOKIE, token, sessionCookieOptions(config.sessionTtlMs));
+    res.status(204).end();
+  }),
+);
+
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email('That email does not look right.'),
+});
+
+/**
+ * Starts a reset. The reply is identical whether or not the address is known —
+ * otherwise this endpoint tells anyone which emails have accounts here.
+ */
+authRouter.post(
+  '/forgot-password',
+  authLimiter,
+  validate(forgotPasswordSchema),
+  asyncRoute(async (req, res) => {
+    const { email } = req.body as z.infer<typeof forgotPasswordSchema>;
+
+    // Checked before the lookup so a half-configured server fails the same way
+    // for every address instead of only for the ones that exist.
+    if (!isMailConfigured()) {
+      throw serviceUnavailable(
+        'Password reset email is not configured on this server yet. Set SMTP_HOST in server/.env.',
+      );
+    }
+
+    const generic = {
+      ok: true,
+      message: 'If an account uses that email, a reset link is on its way.',
+    };
+
+    const user = db.get<UserRow>('SELECT * FROM users WHERE email = ?', email);
+    if (!user) {
+      res.json(generic);
+      return;
+    }
+
+    const { token, expiresAt } = issuePasswordResetToken(user.id);
+    const expiresMinutes = Math.max(1, Math.round((new Date(expiresAt).getTime() - Date.now()) / 60_000));
+    const resetUrl = `${config.webOrigin}/reset-password?token=${encodeURIComponent(token)}`;
+
+    // A send failure is surfaced rather than swallowed: quietly pretending an
+    // email is coming is the one failure a person cannot discover on their own.
+    await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl, expiresMinutes });
+
+    res.json(generic);
+  }),
+);
+
+/** Lets the reset page say "this link expired" before anyone types a password. */
+authRouter.get(
+  '/reset-password/:token',
+  authLimiter,
+  validate(z.object({ token: z.string().trim().min(1, 'That link is missing its token.') }), 'params'),
+  asyncRoute(async (req, res) => {
+    const { token } = req.params as { token: string };
+    const row = peekPasswordResetToken(token);
+
+    if (!row || !isResetTokenUsable(row)) {
+      throw badRequest('That reset link is not valid or has expired. Ask for a new one.');
+    }
+
+    res.json({ valid: true });
+  }),
+);
+
+const resetPasswordSchema = z.object({
+  token: z.string().trim().min(1, 'That link is missing its token.'),
+  newPassword: z.string().min(10, 'Use at least 10 characters.').max(200),
+});
+
+authRouter.post(
+  '/reset-password',
+  authLimiter,
+  validate(resetPasswordSchema),
+  asyncRoute(async (req, res) => {
+    const { token, newPassword } = req.body as z.infer<typeof resetPasswordSchema>;
+
+    const row = peekPasswordResetToken(token);
+    if (!row || !isResetTokenUsable(row)) {
+      throw badRequest('That reset link is not valid or has expired. Ask for a new one.');
+    }
+
+    const problems = passwordProblems(newPassword);
+    if (problems.length > 0) throw badRequest(`Your new password needs ${problems.join(', ')}.`);
+
+    const user = db.get<UserRow>('SELECT * FROM users WHERE id = ?', row.user_id);
+    if (!user) throw badRequest('That reset link is not valid or has expired. Ask for a new one.');
+
+    const passwordHash = await hashPassword(newPassword);
+
+    // Spending the token and changing the password commit together, so a link
+    // is either fully used or still fully valid — never a half-finished reset.
+    db.transaction(() => {
+      const spentUserId = consumePasswordResetToken(token);
+      if (!spentUserId) throw badRequest('That reset link is no longer valid. Ask for a new one.');
+
+      db.run(
+        'UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?',
+        passwordHash,
+        nowIso(),
+        spentUserId,
+      );
+    });
+
+    // Every other device is signed out; this one gets a fresh session below.
+    clearUserCache();
+    destroyAllSessionsForUser(user.id);
+    const { token: sessionToken } = createSession({
+      userId: user.id,
+      userAgent: req.get('user-agent'),
+      ipAddress: clientIp(req),
+    });
+    res.cookie(SESSION_COOKIE, sessionToken, sessionCookieOptions(config.sessionTtlMs));
     res.status(204).end();
   }),
 );
