@@ -99,45 +99,43 @@ export function createApp() {
   // In production this same process serves the built client, so the app runs on
   // one origin. That is also what the httpOnly session cookie wants — no CORS
   // and no cross-site cookie edge cases in the live app.
-  // Serve the built client whenever it exists, not only when NODE_ENV is
-  // explicitly production — some hosts (e.g. Replit) run without that flag.
-  if (config.isProduction || fs.existsSync(path.join(config.clientDist, 'index.html'))) {
-    app.use(
-      express.static(config.clientDist, {
-        index: false,
-        maxAge: '1h',
-        setHeaders(res, filePath) {
-          // The shell must be revalidated or clients get pinned to an old
-          // bundle; /assets/* is content-hashed and safe to cache.
-          if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
-        },
-      }),
-    );
+  // Serve the built client whenever it exists at request time — some hosts
+  // (e.g. Replit) run without NODE_ENV=production, and a startup-time check
+  // can race the build, so this is checked per request instead.
+  app.use(
+    express.static(config.clientDist, {
+      index: false,
+      maxAge: '1h',
+      setHeaders(res, filePath) {
+        // The shell must be revalidated or clients get pinned to an old
+        // bundle; /assets/* is content-hashed and safe to cache.
+        if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+      },
+    }),
+  );
 
-    // Deep links like /diary/<id> are client routes, so hand them the shell.
-    // API, media and bundle assets fall through to the real 404 handler —
-    // returning HTML for a missing .js would show up as a module parse error.
-    app.get('*', (req, res, next) => {
-      if (
-        req.path.startsWith('/api') ||
-        req.path.startsWith('/media') ||
-        req.path.startsWith('/socket.io') ||
-        req.path.startsWith('/assets/')
-      ) {
-        return next();
-      }
+  // Deep links like /diary/<id> are client routes, so hand them the shell.
+  // API, media and bundle assets fall through to the real 404 handler —
+  // returning HTML for a missing .js would show up as a module parse error.
+  app.get('*', (req, res, next) => {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/media') ||
+      req.path.startsWith('/socket.io') ||
+      req.path.startsWith('/assets/')
+    ) {
+      return next();
+    }
+    const indexPath = path.join(config.clientDist, 'index.html');
+    try {
       res.setHeader('Cache-Control', 'no-cache');
-      const indexPath = path.join(config.clientDist, 'index.html');
-      try {
-        res.setHeader('Cache-Control', 'no-cache');
-        res.type('html');
-        res.send(fs.readFileSync(indexPath));
-      } catch (error) {
-        console.error('[client] readFileSync failed:', error);
-        next();
-      }
-    });
-  }
+      res.type('html');
+      res.send(fs.readFileSync(indexPath));
+    } catch (error) {
+      console.error('[client] readFileSync failed:', error);
+      next();
+    }
+  });
 
   app.use(notFoundHandler);
   app.use(errorHandler);
