@@ -8,3 +8,41 @@ channel = "stable-25_05"
 [deployment]
 run = ["sh", "-c", "npm run build && npm run start"]
 deploymentTarget = "cloudrun"
+
+[userenv]
+
+[userenv.shared]
+INVITE_CODE = ""
+WEB_ORIGIN = "https://feeaab94-c28f-458a-bdae-7b102bdfd2f8-00-2rei8f24m7huc.pike.replit.dev"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run seed && npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 4000
+externalPort = 3000
+
+[[ports]]
+localPort = 5000
+externalPort = 80

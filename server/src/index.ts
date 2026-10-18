@@ -60,7 +60,7 @@ server.listen(config.port, () => {
   console.log(`\n  ${config.spaceName}`);
   console.log(`  API      http://localhost:${config.port}/api`);
   console.log(`  Client   ${config.webOrigin}`);
-  console.log(`  Database ${config.databaseUrl || config.databasePath}`);
+  console.log(`  Database ${config.databaseUrl ? '(configured remote database)' : config.databasePath}`);
   console.log(`  Storage  ${config.storageDir}`);
   console.log(`  Mode     ${config.env}\n`);
 });
