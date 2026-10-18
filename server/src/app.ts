@@ -128,7 +128,10 @@ export function createApp() {
       }
       res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(path.join(config.clientDist, 'index.html'), (error) => {
-        if (error) next();
+        if (error) {
+          console.error('[client] sendFile failed:', error);
+          next();
+        }
       });
     });
   }
