@@ -127,12 +127,15 @@ export function createApp() {
         return next();
       }
       res.setHeader('Cache-Control', 'no-cache');
-      res.sendFile(path.join(config.clientDist, 'index.html'), (error) => {
-        if (error) {
-          console.error('[client] sendFile failed:', error);
-          next();
-        }
-      });
+      const indexPath = path.join(config.clientDist, 'index.html');
+      try {
+        res.setHeader('Cache-Control', 'no-cache');
+        res.type('html');
+        res.send(fs.readFileSync(indexPath));
+      } catch (error) {
+        console.error('[client] readFileSync failed:', error);
+        next();
+      }
     });
   }
 
