@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'node:fs';
 import path from 'node:path';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -98,7 +99,9 @@ export function createApp() {
   // In production this same process serves the built client, so the app runs on
   // one origin. That is also what the httpOnly session cookie wants — no CORS
   // and no cross-site cookie edge cases in the live app.
-  if (config.isProduction) {
+  // Serve the built client whenever it exists, not only when NODE_ENV is
+  // explicitly production — some hosts (e.g. Replit) run without that flag.
+  if (config.isProduction || fs.existsSync(path.join(config.clientDist, 'index.html'))) {
     app.use(
       express.static(config.clientDist, {
         index: false,
