@@ -1,0 +1,10 @@
+run = "npm run build && npm run start"
+entrypoint = "server/dist/index.js"
+modules = ["nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "npm run build && npm run start"]
+deploymentTarget = "cloudrun"
