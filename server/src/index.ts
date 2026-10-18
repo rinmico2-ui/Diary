@@ -1,4 +1,6 @@
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
 import { config } from './config.js';
 import { createApp } from './app.js';
 import { createRealtimeServer } from './realtime/socket.js';
@@ -60,6 +62,7 @@ server.listen(config.port, () => {
   console.log(`\n  ${config.spaceName}`);
   console.log(`  API      http://localhost:${config.port}/api`);
   console.log(`  Client   ${config.webOrigin}`);
+  console.log(`  ClientDist ${config.clientDist} (exists: ${fs.existsSync(path.join(config.clientDist, 'index.html'))})`);
   console.log(`  Database ${config.databaseUrl ? '(configured remote database)' : config.databasePath}`);
   console.log(`  Storage  ${config.storageDir}`);
   console.log(`  Mode     ${config.env}\n`);
