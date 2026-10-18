@@ -160,8 +160,10 @@ function Shell({
 
       {connection !== 'online' && <ConnectionBanner state={connection} />}
 
-      {/* Secondary destinations, reachable on desktop without crowding the rail. */}
-      <div className="pointer-events-none fixed bottom-5 right-5 z-20 hidden flex-col items-end gap-2 sm:flex">
+      {/* Secondary destinations. On desktop they float beside the rail; on
+          mobile they stack above the bottom nav so settings and search stay
+          reachable. */}
+      <div className="pointer-events-none fixed bottom-24 right-4 z-20 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
         {(
           [
             { to: '/favorites', emoji: '❤️', label: 'Favorites' },
@@ -176,7 +178,7 @@ function Shell({
             onClick={() => navigate(item.to)}
             aria-label={item.label}
             title={item.label}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-base shadow-card transition-transform hover:scale-105 active:scale-95"
+            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-sm shadow-card transition-transform hover:scale-105 active:scale-95 sm:h-10 sm:w-10 sm:text-base"
           >
             {item.emoji}
           </button>

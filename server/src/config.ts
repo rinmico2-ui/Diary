@@ -35,8 +35,25 @@ if (!isProduction && sessionSecret.length < 32) {
   );
 }
 
-const databasePath = resolveFromRoot(process.env.DATABASE_PATH ?? './data/our-space.db');
-const storageDir = resolveFromRoot(process.env.STORAGE_DIR ?? './data/storage');
+// Render (and similar hosts) mount a persistent disk at a fixed path; prefer it
+// automatically so data survives redeploys without extra configuration.
+function resolveDataDir(): string {
+  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  for (const candidate of ['/var/data', '/data']) {
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch {
+      /* ignore and fall through */
+    }
+  }
+  return './data';
+}
+const dataDir = resolveDataDir();
+const databasePath = resolveFromRoot(process.env.DATABASE_PATH ?? path.join(dataDir, 'our-space.db'));
+const databaseUrl = process.env.DATABASE_URL ?? process.env.TURSO_DATABASE_URL ?? '';
+const databaseAuthToken = process.env.DATABASE_AUTH_TOKEN ?? process.env.TURSO_AUTH_TOKEN ?? '';
+const databaseSyncUrl = process.env.DATABASE_SYNC_URL ?? process.env.TURSO_SYNC_URL ?? '';
+const storageDir = resolveFromRoot(process.env.STORAGE_DIR ?? path.join(dataDir, 'storage'));
 
 for (const dir of [path.dirname(databasePath), storageDir]) {
   fs.mkdirSync(dir, { recursive: true });
@@ -55,6 +72,9 @@ export const config = {
   corsOrigins,
   sessionSecret: sessionSecret || crypto.randomBytes(48).toString('base64url'),
   databasePath,
+  databaseUrl,
+  databaseAuthToken,
+  databaseSyncUrl,
   storageDir,
   /** The built client. In production this process also serves it, so the app
    *  runs on a single origin — which is what the httpOnly session cookie wants. */
@@ -93,6 +113,9 @@ export const config = {
     from: process.env.SMTP_FROM ?? 'Our Little Space <no-reply@localhost>',
   },
   rateLimitWindowMs: int(process.env.RATE_LIMIT_WINDOW_MS, 60_000),
+  /** Prints the account list in the boot log. Off by default: emails in a
+   *  shared log are only okay when the operator explicitly asks for them. */
+  logAccounts: bool(process.env.LOG_ACCOUNTS, false),
   authRateLimitMax: int(process.env.AUTH_RATE_LIMIT_MAX, 10),
   apiRateLimitMax: int(process.env.API_RATE_LIMIT_MAX, 600),
   uploadRateLimitMax: int(process.env.UPLOAD_RATE_LIMIT_MAX, 120),

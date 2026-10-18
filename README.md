@@ -149,9 +149,10 @@ web/                         Vite + React + TypeScript + Tailwind
   src/pages/                 one file per surface
 ```
 
-**Database** — SQLite via Node 24's built-in `node:sqlite`, in WAL mode with
-foreign keys on. No native compilation, no external service, and genuinely
-persistent. Tables follow the specified model: `users`, `private_spaces`,
+**Database** — SQLite-compatible via `libsql`, in WAL mode with
+foreign keys on. No native compilation. Runs on a local file by default, and
+can point at a persistent remote libSQL/Turso database (`DATABASE_URL`) so
+data survives redeploys on hosts with ephemeral disks. Tables follow the specified model: `users`, `private_spaces`,
 `space_members`, `messages`, `message_reads`, `message_reactions`,
 `diary_entries`, `photos`, `collections`, `tags`, `memory_tags`,
 `attachments`, `notifications`, `sessions`, `user_settings`.
@@ -195,6 +196,15 @@ edits, deletes, reactions, read receipts, typing, presence, and memory changes.
 5. Put a TLS-terminating reverse proxy in front and forward both HTTP and
    WebSocket upgrades.
 6. Back up `server/data/` — that directory is the entire application state.
+   On hosts with ephemeral disks (e.g. Render's free tier, where disks are
+   unavailable), create a free Turso database and set `DATABASE_URL` (and
+   `DATABASE_AUTH_TOKEN`) in the host's environment:
+     turso db create our-little-space
+     turso db show our-little-space --url
+     turso db tokens create our-little-space
+   Note: uploaded photos/voice notes still live on the host disk, so they are
+   ephemeral on free tiers unless you attach storage or implement the S3/R2
+   ObjectStore.
 
 ---
 

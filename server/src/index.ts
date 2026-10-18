@@ -7,6 +7,22 @@ import { purgeExpiredSessions } from './lib/session.js';
 import { purgeExpiredPasswordResetTokens } from './lib/passwordReset.js';
 
 db.migrate();
+try {
+  db.sync();
+} catch {
+  /* remote sync is best effort; local file still works */
+}
+
+// Handy on hosts where you cannot open a shell (a free PaaS, for example):
+// with LOG_ACCOUNTS=1 the account list appears in the deploy logs.
+if (config.logAccounts) {
+  const accounts = db.all<{ email: string; name: string; created_at: string }>(
+    'SELECT email, name, created_at FROM users ORDER BY created_at',
+  );
+  console.log(`\n  Accounts (${accounts.length}):`);
+  for (const account of accounts) console.log(`   - ${account.name} <${account.email}>`);
+  console.log('');
+}
 
 const app = createApp();
 const server = http.createServer(app);
@@ -44,7 +60,7 @@ server.listen(config.port, () => {
   console.log(`\n  ${config.spaceName}`);
   console.log(`  API      http://localhost:${config.port}/api`);
   console.log(`  Client   ${config.webOrigin}`);
-  console.log(`  Database ${config.databasePath}`);
+  console.log(`  Database ${config.databaseUrl || config.databasePath}`);
   console.log(`  Storage  ${config.storageDir}`);
   console.log(`  Mode     ${config.env}\n`);
 });
