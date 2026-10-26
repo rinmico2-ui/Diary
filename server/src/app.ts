@@ -2,7 +2,6 @@ import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import helmet from 'helmet';
-import cors from 'cors';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { config } from './config.js';
@@ -20,7 +19,7 @@ import { uploadRouter } from './routes/upload.js';
 import { appRouter } from './routes/app.js';
 import { mediaRouter } from './routes/media.js';
 
-export function isOriginAllowed(origin: string): boolean {
+export function isOriginAllowed(origin: string, host?: string): boolean {
   if (config.corsOrigins.includes(origin)) return true;
 
   // In development the Vite dev server will pick a different port whenever
@@ -33,6 +32,16 @@ export function isOriginAllowed(origin: string): boolean {
     } catch {
       return false;
     }
+  }
+
+  // Same-origin requests are always allowed: the browser considers them
+  // same-origin, and the Host header identifies our own deployment origin.
+  // This keeps the app working on any host without listing every origin.
+  try {
+    const url = new URL(origin);
+    if (host && url.host === host) return true;
+  } catch {
+    return false;
   }
 
   return false;
@@ -54,21 +63,28 @@ export function createApp() {
     }),
   );
 
-  app.use(
-    cors({
-      origin(origin, callback) {
-        // Same-origin and non-browser clients send no Origin header.
-        if (!origin) return callback(null, true);
-        if (isOriginAllowed(origin)) return callback(null, true);
-        // Must be an HttpError: a plain Error would be reported as a 500 and
-        // make a rejected origin look like a server fault.
-        callback(
-          new HttpError(403, 'This request came from an address the space does not trust.', 'origin_not_allowed'),
-        );
-      },
-      credentials: true,
-    }),
-  );
+  // CORS / origin gate. Same-origin requests (the normal case in production,
+  // where this process also serves the client) are always allowed; the Host
+  // header identifies our own deployment origin.
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (!origin) return next();
+    if (!isOriginAllowed(origin, req.headers.host)) {
+      return next(
+        new HttpError(403, 'This request came from an address the space does not trust.', 'origin_not_allowed'),
+      );
+    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Vary', 'Origin');
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Max-Age', '600');
+      return res.sendStatus(204);
+    }
+    next();
+  });
 
   app.use(compression());
   app.use(cookieParser());

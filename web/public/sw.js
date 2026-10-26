@@ -6,7 +6,7 @@
  * serves stale rows or swallows a live message would be worse than no offline
  * support at all.
  */
-const VERSION = 'ols-shell-v1';
+const VERSION = 'ols-shell-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/favicon.svg', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
