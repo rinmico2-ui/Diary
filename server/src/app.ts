@@ -75,7 +75,9 @@ export function createApp() {
   // header identifies our own deployment origin.
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (!origin) return next();
+    // Static assets and the app shell are same-origin by construction and
+    // must never be blocked by the origin gate (a 403 here blanked the page).
+    if (!origin || !req.path.startsWith('/api')) return next();
     const forwardedHost = req.headers['x-forwarded-host'];
     const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.headers.host;
     if (!isOriginAllowed(origin, host)) {
