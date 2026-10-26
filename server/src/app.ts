@@ -40,6 +40,13 @@ export function isOriginAllowed(origin: string, host?: string): boolean {
   try {
     const url = new URL(origin);
     if (host && url.host === host) return true;
+    // Fall back to the configured public origin, in case the proxy does not
+    // forward a matching Host header.
+    try {
+      if (url.host === new URL(config.webOrigin).host) return true;
+    } catch {
+      /* ignore */
+    }
   } catch {
     return false;
   }
@@ -69,7 +76,9 @@ export function createApp() {
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (!origin) return next();
-    if (!isOriginAllowed(origin, req.headers.host)) {
+    const forwardedHost = req.headers['x-forwarded-host'];
+    const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.headers.host;
+    if (!isOriginAllowed(origin, host)) {
       return next(
         new HttpError(403, 'This request came from an address the space does not trust.', 'origin_not_allowed'),
       );
