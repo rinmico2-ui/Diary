@@ -104,6 +104,18 @@
   .muted {
     @apply text-sm text-ink-faint;
   }
+
+  .chat-viewport {
+    position: fixed;
+    inset-inline: 0;
+    top: var(--chat-top, 0px);
+    height: 100vh;
+    height: var(--chat-height, 100dvh);
+  }
+
+  .chat-composer {
+    padding-bottom: max(0.625rem, var(--safe-bottom));
+  }
 }
 
 @layer utilities {
@@ -119,10 +131,6 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-  /* Keeps the chat composer above the iOS keyboard. */
-  .kb-safe {
-    padding-bottom: env(keyboard-inset-height, var(--safe-bottom));
   }
 }
 

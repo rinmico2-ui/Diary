@@ -11,6 +11,7 @@ import type { Collection, DiaryEntry, Message, Photo, Session } from '../lib/typ
 import { relativeTime } from '../lib/format';
 import { toasts } from '../lib/toast';
 import { moodMeta } from '../lib/types';
+import { useChatViewport } from '../lib/useChatViewport';
 
 export function MessagesPage({ session }: { session: Session }) {
   const { data, loading, reload } = useApi<{ messages: Message[] }>('/messages?limit=150');
@@ -28,6 +29,7 @@ export function MessagesPage({ session }: { session: Session }) {
   const sendTyping = useTypingSignal(session.partner?.id ?? null);
   const listEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const viewportRef = useChatViewport();
 
   const messages = data?.messages ?? [];
   const reloadSoon = useDebouncedCallback(() => reload(), 250);
@@ -112,7 +114,7 @@ export function MessagesPage({ session }: { session: Session }) {
   const partner = session.partner;
 
   return (
-    <div className="flex h-[100dvh] flex-col sm:ml-64 lg:ml-72">
+    <div ref={viewportRef} className="chat-viewport flex min-h-0 flex-col overflow-hidden sm:ml-64 lg:ml-72">
       <header className="flex shrink-0 items-center gap-3 border-b border-line bg-canvas/85 px-4 py-3 backdrop-blur-xl sm:px-6">
         <button type="button" onClick={() => navigate(-1)} className="btn-ghost -ml-2 h-9 w-9 p-0 text-lg sm:hidden" aria-label="Back">
           ‹
@@ -160,7 +162,7 @@ export function MessagesPage({ session }: { session: Session }) {
             />
           </div>
         ) : (
-          <div className="h-full overflow-y-auto px-3 py-2 sm:px-6">
+          <div className="h-full overflow-y-auto overscroll-contain px-3 py-2 sm:px-6">
             <div className="mx-auto max-w-3xl">
               <MessageThread
                 messages={messages}
@@ -201,8 +203,8 @@ export function MessagesPage({ session }: { session: Session }) {
         )}
       </div>
 
-      {/* Composer: sticky, camera-first, keyboard safe. */}
-      <div className="kb-safe shrink-0 border-t border-line bg-canvas/90 px-3 py-2.5 backdrop-blur-xl sm:px-6">
+      {/* The thread scrolls independently while the composer stays in the visible viewport. */}
+      <div className="chat-composer shrink-0 border-t border-line bg-canvas/90 px-3 pt-2.5 backdrop-blur-xl sm:px-6">
         <div className="mx-auto max-w-3xl">
           <AnimatePresence>
             {replyTo && (
@@ -242,7 +244,7 @@ export function MessagesPage({ session }: { session: Session }) {
               📷
             </button>
 
-            <div className="relative flex-1">
+            <div className="relative min-w-0 flex-1">
               <textarea
                 ref={composerRef}
                 value={draft}
@@ -257,7 +259,7 @@ export function MessagesPage({ session }: { session: Session }) {
                 placeholder="Type a message…"
                 aria-label="Message"
                 className="max-h-32 w-full resize-none overflow-y-auto rounded-2xl border border-line bg-surface px-4 py-2.5
-                           text-[15px] text-ink placeholder:text-ink-faint focus:border-rose-300 focus:outline-none focus:ring-4 focus:ring-rose-100/60"
+                           text-base text-ink placeholder:text-ink-faint focus:border-rose-300 focus:outline-none focus:ring-4 focus:ring-rose-100/60"
                 style={{ height: 'auto' }}
               />
 

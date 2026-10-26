@@ -146,9 +146,9 @@ function Shell({
       <AnimatePresence mode="wait">
         <motion.main
           key={isChat ? 'chat' : `page-${location.pathname}`}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
+          initial={isChat ? { opacity: 0 } : { opacity: 0, y: 6 }}
+          animate={isChat ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          exit={isChat ? { opacity: 0 } : { opacity: 0, y: -4 }}
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           className={isChat ? '' : 'sm:pl-64 lg:pl-72'}
         >
@@ -156,34 +156,35 @@ function Shell({
         </motion.main>
       </AnimatePresence>
 
-      <BottomNav items={items} onAdd={() => open('photos')} />
+      {!isChat && <BottomNav items={items} onAdd={() => open('photos')} />}
 
       {connection !== 'online' && <ConnectionBanner state={connection} />}
 
-      {/* Secondary destinations. On desktop they float beside the rail; on
-          mobile they stack above the bottom nav so settings and search stay
-          reachable. */}
-      <div className="pointer-events-none fixed bottom-24 right-4 z-20 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
-        {(
-          [
-            { to: '/favorites', emoji: '❤️', label: 'Favorites' },
-            { to: '/timeline', emoji: '📅', label: 'Timeline' },
-            { to: '/search', emoji: '🔍', label: 'Search' },
-            { to: '/settings', emoji: '⚙️', label: 'Settings' },
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.to}
-            type="button"
-            onClick={() => navigate(item.to)}
-            aria-label={item.label}
-            title={item.label}
-            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-sm shadow-card transition-transform hover:scale-105 active:scale-95 sm:h-10 sm:w-10 sm:text-base"
-          >
-            {item.emoji}
-          </button>
-        ))}
-      </div>
+      {/* Secondary destinations stay outside the conversation so they cannot
+          overlap its composer, including on phones in landscape. */}
+      {!isChat && (
+        <div className="pointer-events-none fixed bottom-24 right-4 z-20 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
+          {(
+            [
+              { to: '/favorites', emoji: '❤️', label: 'Favorites' },
+              { to: '/timeline', emoji: '📅', label: 'Timeline' },
+              { to: '/search', emoji: '🔍', label: 'Search' },
+              { to: '/settings', emoji: '⚙️', label: 'Settings' },
+            ] as const
+          ).map((item) => (
+            <button
+              key={item.to}
+              type="button"
+              onClick={() => navigate(item.to)}
+              aria-label={item.label}
+              title={item.label}
+              className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-sm shadow-card transition-transform hover:scale-105 active:scale-95 sm:h-10 sm:w-10 sm:text-base"
+            >
+              {item.emoji}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
