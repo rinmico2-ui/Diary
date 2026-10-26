@@ -50,7 +50,19 @@ function markOffline(userId: string): void {
 
 export function createRealtimeServer(httpServer: HttpServer): SocketIOServer {
   const io = new SocketIOServer(httpServer, {
-    cors: { origin: config.corsOrigins, credentials: true },
+    cors: {
+      origin(origin, callback) {
+        if (!origin) return callback(null, true);
+        if (config.corsOrigins.includes(origin)) return callback(null, true);
+        try {
+          if (new URL(origin).host === new URL(config.webOrigin).host) return callback(null, true);
+        } catch {
+          /* ignore */
+        }
+        callback(new Error('origin_not_allowed'));
+      },
+      credentials: true,
+    },
     // Long-poll fallback keeps things working if a proxy blocks websockets.
     transports: ['websocket', 'polling'],
     maxHttpBufferSize: 1e6,
