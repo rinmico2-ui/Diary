@@ -41,7 +41,37 @@ it only against an isolated temporary database/server, not the real private spac
 
 ## Publishing
 
-This setup is for development preview, not a production data-storage setup.
-Before publishing, configure durable storage for the existing SQLite database
-and uploaded files, the production origin, secure cookies, and secrets. Preserve
-the existing database technology unless the user explicitly requests a change.
+Use **Autoscale** publishing. The `.replit` deployment settings build both
+workspaces with `npm run build` during the build phase, then run only the built
+server with `npm run start`. Do not build inside the deployment run command:
+every cold start would otherwise compile the app while health checks are waiting.
+
+The deployment command sets `NODE_ENV=production`, `PORT=5000`,
+`COOKIE_SECURE=1`, and `WEB_ORIGIN=https://diary--rinmico2.replit.app`.
+The server listens on `0.0.0.0:5000`; the only external port mapping is
+5000 to 80. It serves `web/dist`, `/api`, `/media`, and Socket.IO together.
+The API's development port 4000 needs no external mapping because Vite proxies it.
+If the public hostname changes, update `WEB_ORIGIN` in the deployment command.
+
+In the Publishing pane, check that the build and run commands match `.replit`
+and that production Secrets include the existing `SESSION_SECRET` (at least
+32 characters) and any database/SMTP credentials the app uses. Workspace Secrets
+and an uncommitted local `.env` are not a substitute for production Secrets.
+Keep the existing session secret to preserve current logins.
+
+Pull the latest source into Replit before republishing. The server must include
+the static-asset origin exemption in `server/src/app.ts`: older builds reject
+browser module/style requests with `403 origin_not_allowed`, blanking the page
+even though opening the homepage or an asset without an Origin header works.
+Keep `WEB_ORIGIN` set to the public production URL so API writes and realtime
+requests also pass origin validation behind Replit's proxy.
+
+After `npm run build`, run `npm run verify:deployment --workspace server`.
+This starts a separate production server with a temporary database and checks
+the homepage, built assets, deep links, proxy origin handling, realtime
+handshake, and authentication boundaries without touching the real space.
+
+Configure durable storage for the existing SQLite database and uploaded files
+before relying on a published deployment for private data. Published local files
+do not persist across republishes. Preserve the existing database technology
+unless the user explicitly requests a change.

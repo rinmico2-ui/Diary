@@ -15,6 +15,7 @@
     "reset": "tsx scripts/reset-space.ts",
     "stop": "tsx scripts/stop.ts",
     "verify": "tsx scripts/verify.ts",
+    "verify:deployment": "node --test scripts/verify-deployment.mjs",
     "verify:smtp": "node scripts/smtp-test.mjs --send",
     "verify:invites": "tsx scripts/verify-invites.ts",
     "verify:notifications": "tsx scripts/verify-notifications.ts"

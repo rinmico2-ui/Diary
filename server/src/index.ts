@@ -58,9 +58,11 @@ server.on('error', (error: NodeJS.ErrnoException) => {
   throw error;
 });
 
-server.listen(config.port, () => {
+server.listen(config.port, '0.0.0.0', () => {
+  const address = server.address();
+  const port = address && typeof address === 'object' ? address.port : config.port;
   console.log(`\n  ${config.spaceName}`);
-  console.log(`  API      http://localhost:${config.port}/api`);
+  console.log(`  API      http://localhost:${port}/api`);
   console.log(`  Client   ${config.webOrigin}`);
   console.log(`  ClientDist ${config.clientDist} (exists: ${fs.existsSync(path.join(config.clientDist, 'index.html'))})`);
   console.log(`  Database ${config.databaseUrl ? '(configured remote database)' : config.databasePath}`);
